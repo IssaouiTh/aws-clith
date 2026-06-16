@@ -1,191 +1,196 @@
-# aws-clith
-# aws-clith
-# AWS CLI - Terraform - Ansible
+Auteur :
+Lucas
+Thoubaita
+Vadio
 
-## Auteur
 
-**Thoubaita Vadio Lucas**
-Mastère Cybersécurité – IPSSI
-AWS Academy – Boris Rose
+Projet de déploiement d'infrastructure AWS, réalisé de deux façons complémentaires :
 
----
+- **CLI** (`infra/cli/`) : scripts Bash qui créent des Network ACLs.
+- **Terraform** (`infra/terraform/`) : un security group, un subnet, une paire de clés SSH et une instance EC2.
+- **Ansible** (`infra/ansible/`) : configuration post-déploiement de l'instance (nginx).
 
-# Objectif du projet
-
-L'objectif de ce projet est de mettre en place une infrastructure AWS sécurisée à l'aide de Terraform et d'Ansible.
-
-Le projet permet de :
-
-* Créer automatiquement l'infrastructure AWS.
-* Déployer un bastion accessible depuis Internet.
-* Déployer une machine cible isolée sans adresse IP publique.
-* Configurer les Security Groups.
-* Mettre en œuvre une architecture de défense en profondeur.
-* Préparer l'automatisation de la configuration via Ansible.
+> ⚠️ **Compte AWS partagé.** Tout le monde travaille sur le même compte (`747082607185`), en région **eu-west-3**. Chaque ressource créée doit donc être **personnalisée** (noms, tags, plage réseau, clé SSH) pour ne pas entrer en conflit avec celles des autres.
 
 ---
 
-# Technologies utilisées
+## Structure du projet
 
-* AWS EC2
-* AWS VPC
-* AWS Security Groups
-* AWS Network ACL
-* Terraform
-* Ansible
-* Git / GitHub
-* WSL Debian 13
-
----
-
-# Architecture
-
-## Bastion
-
-Le bastion est une instance EC2 Ubuntu disposant :
-
-* d'une adresse IP publique ;
-* d'un accès SSH contrôlé ;
-* d'un Security Group dédié.
-
-Le bastion sert de point d'entrée sécurisé vers l'infrastructure.
-
-## Cible
-
-La machine cible :
-
-* est située dans le même sous-réseau ;
-* ne possède aucune adresse IP publique ;
-* n'est accessible qu'à travers le bastion.
+```
+.
+├── README.md
+├── infra
+│   ├── ansible
+│   │   ├── inventory.ini
+│   │   └── nginx.yml
+│   ├── cli
+│   │   ├── constants
+│   │   │   └── constants.sh
+│   │   └── services
+│   │       └── ec2.sh
+│   ├── main.sh
+│   └── terraform
+│       ├── main.tf
+│       ├── outputs.tf
+│       ├── terraform.tf
+│       └── variables.tf
+└── infra/terraform/terraform.tfvars   # créé localement, non versionné
+```
 
 ---
 
-# Terraform
-
-Terraform est utilisé pour créer automatiquement :
-
-* le subnet ;
-* les Security Groups ;
-* la paire de clés SSH ;
-* l'instance EC2 Bastion ;
-* l'instance EC2 Cible.
-
-## Ressources créées
-
-### Security Groups
-
-#### SG Bastion
-
-Autorise :
-
-* SSH (22) depuis l'adresse IP de l'administrateur.
-
-#### SG Cible
-
-Autorise :
-
-* SSH (22) depuis le Security Group du bastion ;
-* ICMP (ping) depuis le Security Group du bastion.
-
-### EC2
-
-#### td-bastion-thoubei
-
-* Ubuntu
-* IP publique activée
-
-#### td-cible-thoubei
-
-* Ubuntu
-* IP publique désactivée
-
----
-
-# Tests réalisés
-
-## Accès SSH Bastion
-
-Connexion depuis le poste local :
+## 1. Prérequis (WSL Debian)
 
 ```bash
-ssh -i ~/.ssh/thoubei_key ubuntu@IP_BASTION
+# AWS CLI v2 (installation dans /tmp, PAS dans le projet)
+cd /tmp
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+cd -
+
+# jq + Terraform
+sudo apt update && sudo apt install -y jq gnupg curl lsb-release
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install -y terraform
 ```
 
-Résultat :
-
-* connexion réussie.
-
-## Ping Bastion → Cible
+Vérification :
 
 ```bash
-ping IP_PRIVEE_CIBLE
+aws --version
+jq --version
+terraform -version
 ```
 
-Résultat :
+---
 
-* communication interne autorisée.
+## 2. Récupérer le projet
 
-## SSH Bastion → Cible
+Via Git :
 
 ```bash
-ssh ubuntu@IP_PRIVEE_CIBLE
+git clone https://github.com/IssaouiTh/aws-clith.git
+cd aws-clith
 ```
 
-Résultat :
+Ou via une archive zip reçue :
 
-* accès autorisé uniquement depuis le bastion.
-
----
-
-# Network ACL
-
-Une NACL personnalisée a été créée afin d'illustrer le fonctionnement stateless des ACL AWS.
-
-## Règles
-
-### Entrée
-
-* TCP 22 Allow
-
-### Sortie
-
-* TCP 1024-65535 Allow
-
-### Test de blocage
-
-Ajout d'une règle :
-
-* Rule 90 Deny TCP 22
-
-Résultat :
-
-* le Security Group autorise toujours le trafic ;
-* la NACL bloque la connexion ;
-* démonstration de la défense en profondeur.
-
----
-
-# GitHub
-
-Travail réalisé sur la branche :
-
-```text
-bastion-soubeith
+```bash
+cd ~
+unzip /mnt/c/Users/TON_USER/Downloads/aws-cli-v1.zip
+cd aws-cli-v1-main
 ```
 
-Le projet est versionné avec Git et hébergé sur GitHub.
+---
+
+## 3. Configurer l'accès AWS
+
+```bash
+aws configure                       # entre TES clés IAM du compte partagé
+aws configure set region eu-west-3  # même région que le projet
+aws sts get-caller-identity         # doit afficher "Account": "747082607185"
+```
+
+> Les clés IAM sont fournies par l'admin/le prof. Ne les colle **jamais** ailleurs que dans `aws configure`.
 
 ---
 
-# Conclusion
+## 4. Fichiers à créer
 
-Ce projet a permis de comprendre :
+Ces fichiers ne sont pas versionnés, c'est volontaire — chacun crée les siens.
 
-* le fonctionnement des VPC AWS ;
-* la différence entre Security Groups et NACL ;
-* la notion de bastion ;
-* l'isolation d'une machine sans adresse IP publique ;
-* l'automatisation d'une infrastructure avec Terraform ;
-* la préparation au déploiement automatisé avec Ansible.
+**a) `terraform.tfvars`**
 
-Cette architecture applique plusieurs bonnes pratiques de sécurité cloud et met en œuvre une défense en profondeur grâce à l'utilisation combinée des Security Groups et des Network ACL.
+```bash
+cat > infra/terraform/terraform.tfvars << 'TFV'
+aws_region       = "eu-west-3"
+vpc_id           = "vpc-0ebcdb39f7a526ef9"
+vm_image         = "ami-0264a86fe7fd257ba"
+vm_instance_type = "t2.micro"
+TFV
+```
+
+**b) Ta paire de clés SSH** (remplace `PRENOM` par ton nom)
+
+```bash
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/PRENOM_key -N ""
+```
+
+---
+
+## 5. Personnaliser `infra/terraform/main.tf`
+
+Le compte étant partagé, les noms et la plage réseau doivent être **uniques** :
+
+- Remplace partout le nom générique (ex. `yokozuna`) par **ton prénom** (`marie_sg`, `marie_subnet`, `marie_key`, `marie_serverweb`...) — y compris dans les tags `Name`.
+  - Le `name` du security group et le `key_name` doivent être uniques sur le compte, sinon `apply` échoue.
+- Mets le chemin de ta clé : `public_key = file(pathexpand("~/.ssh/PRENOM_key.pub"))`.
+- Choisis une plage de subnet **libre** en `/24`. Vérifie les plages déjà prises :
+
+```bash
+aws ec2 describe-subnets --filters "Name=vpc-id,Values=vpc-0ebcdb39f7a526ef9" \
+  --query "Subnets[].CidrBlock" --output table
+```
+
+Prends-en une qui n'apparaît pas dans la liste (ex. `172.31.120.0/24`).
+
+---
+
+## 6. Déployer avec Terraform
+
+```bash
+cd infra/terraform
+terraform init        # télécharge le provider AWS
+terraform validate    # doit afficher "Success!"
+terraform plan        # doit afficher "Plan: 4 to add"
+terraform apply        # tape "yes" pour créer réellement
+```
+
+L'IP publique de la VM s'affiche dans les `Outputs` après l'`apply`.
+
+---
+
+## 7. Partie CLI — Network ACLs
+
+```bash
+cd infra
+./main.sh ma-nacl-test
+```
+
+---
+
+## 8. Partie Ansible
+
+Le dossier `infra/ansible/` contient un inventaire (`inventory.ini`) et un playbook (`nginx.yml`) destinés à configurer l'instance après son déploiement (installation/configuration de nginx). Adapte `inventory.ini` avec l'IP publique obtenue à l'étape 6, puis lance le playbook selon les besoins du TP.
+
+---
+
+## 9. Nettoyage (important, en fin de TP)
+
+L'instance EC2 est **facturée** hors free tier :
+
+```bash
+cd infra/terraform
+terraform destroy     # supprime VM + SG + subnet + clé
+```
+
+---
+
+## Bonnes pratiques
+
+- Ne **jamais** committer : `terraform.tfvars`, `*.tfstate`, `*.tfstate.backup`, le dossier `.terraform/`, ou une clé privée SSH. Ajoute-les à un `.gitignore`.
+- Vérifie toujours `aws sts get-caller-identity` avant de lancer `apply` pour confirmer le bon compte/région.
+- Restreins les accès SSH (security group) à des IP précises plutôt qu'à `0.0.0.0/0`.
+
+---
+
+## Récapitulatif
+
+| Action | Quoi |
+|---|---|
+| **Créer** | `terraform.tfvars`, ta clé SSH |
+| **Modifier** | nom générique → ton prénom, plage subnet libre, chemin de ta clé |
+| **Vérifier** | accès AWS au compte `747082607185`, région `eu-west-3` |
+| **Ne pas oublier** | `terraform destroy` à la fin |

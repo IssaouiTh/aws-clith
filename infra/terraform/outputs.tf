@@ -1,19 +1,27 @@
-output "instance_public_ip" {
-  description = "IP publique de l'instance EC2"
-  value       = aws_instance.thoubei_serverweb.public_ip
+output "bastion_public_ip" {
+  value = aws_instance.td_bastion.public_ip
 }
 
-output "instance_id" {
-  description = "ID de l'instance EC2"
-  value       = aws_instance.thoubei_serverweb.id
+output "cible_private_ip" {
+  value = aws_instance.td_cible.private_ip
+}
+
+output "bastion_id" {
+  value = aws_instance.td_bastion.id
+}
+
+output "cible_id" {
+  value = aws_instance.td_cible.id
 }
 
 output "subnet_id" {
-  description = "ID du subnet"
-  value       = aws_subnet.thoubei_subnet.id
+  value = aws_subnet.thoubei_subnet.id
 }
 
-output "security_group_id" {
-  description = "ID du security group"
-  value       = aws_security_group.thoubei.id
+output "sg_bastion_id" {
+  value = aws_security_group.sg_bastion.id
+}
+
+output "sg_cible_id" {
+  value = aws_security_group.sg_cible.id
 }

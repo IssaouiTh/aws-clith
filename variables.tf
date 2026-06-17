@@ -1,17 +1,18 @@
-variable "region" {
-  default = "eu-west-3"
+variable "region"        { default = "eu-west-3" }
+variable "instance_type" { default = "t3.micro" }
+variable "az"            { default = "eu-west-3a" }
+
+variable "prefix" {
+  description = "Prefixe de nommage"
+  default     = "quentin-kail"
 }
 
-variable "az" {
-  description = "Zone de dispo pour les 2 instances (meme AZ)"
-  default     = "eu-west-3a"
+variable "nacl_block_return" {
+  description = "true = retire la sortie ephemere (piege stateless, Partie 5)"
+  default     = false
 }
 
-variable "instance_type" {
-  default = "t3.micro"
-}
-
-variable "my_ip" {
-  description = "Ton IP publique en /32"
-  type        = string
+variable "nacl_deny_ssh" {
+  description = "true = ajoute un deny n.90 (defense en profondeur, Partie 6)"
+  default     = false
 }

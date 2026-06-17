@@ -1,6 +1,5 @@
-# Bastion : SSH depuis MON IP uniquement
 resource "aws_security_group" "bastion" {
-  name        = "sg-bastion"
+  name        = "${var.prefix}-bastion"
   description = "SSH depuis mon IP"
   vpc_id      = data.aws_vpc.default.id
 
@@ -9,7 +8,7 @@ resource "aws_security_group" "bastion" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.my_ip]
+    cidr_blocks = [local.my_ip]
   }
 
   egress {
@@ -19,12 +18,11 @@ resource "aws_security_group" "bastion" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = { Name = "sg-bastion" }
+  tags = { Name = "${var.prefix}-bastion" }
 }
 
-# Cible : accessible uniquement depuis le SG du bastion
 resource "aws_security_group" "cible" {
-  name        = "sg-cible"
+  name        = "${var.prefix}-cible"
   description = "Acces depuis le bastion uniquement"
   vpc_id      = data.aws_vpc.default.id
 
@@ -51,5 +49,5 @@ resource "aws_security_group" "cible" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = { Name = "sg-cible" }
+  tags = { Name = "${var.prefix}-cible" }
 }

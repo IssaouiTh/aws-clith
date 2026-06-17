@@ -1,0 +1,15 @@
+# State Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Variables
+*.tfvars
+
+# Cles SSH (toutes les variantes)
+cle-quentin
+cle-quentin.pub
+*.pem
+*_key
+*_key.pub

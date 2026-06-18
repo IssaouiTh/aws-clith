@@ -1,5 +1,9 @@
 .terraform/
 *.tfstate
-*.tfstate.backup
+*.tfstate.*
 *.tfvars
 *.tfplan
+*.pem
+*.key
+.env
+nacl.json
